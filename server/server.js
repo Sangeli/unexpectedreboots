@@ -71,6 +71,7 @@ app.use('/test/groups/markups', routes.getGroupMarkups);
 app.use('/test/groups/sites', routes.getGroupSites);
 app.use('/test/comments/create', routes.createComment);
 app.use('/test/comments/get', routes.getComments);
+app.use('/test/websites/getmarkups', routes.getMarkups);
 
 app.listen(3000);
 
