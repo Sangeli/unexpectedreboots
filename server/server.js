@@ -7,7 +7,7 @@ var sessionChecker = require('./lib/utility.js').sessionChecker;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
-  extended: true 
+  extended: true
 }));
 
 app.use(function(req, res, next) {
@@ -40,7 +40,7 @@ app.use('/api/groups/join', routes.joinGroup);
 app.use('/api/groups/users', sessionChecker, routes.getGroupMembers);
 app.use('/api/groups/markups', sessionChecker, routes.getGroupMarkups);
 app.use('/api/groups/sites', sessionChecker, routes.getGroupSites);
-// TODO 
+// TODO
 app.use('/api/groups/edit', sessionChecker, routes.editGroup);
 
 // `/api/websites/*` endpoints
@@ -50,8 +50,8 @@ app.use('/api/websites/share', sessionChecker, routes.shareSite);
 app.use('/api/websites/delete', sessionChecker, routes.deleteSite);
 
 // `/api/markups/*` endpoints
-app.use('/api/markups/create', sessionChecker, routes.createMarkup);
-app.use('/api/markups/share', sessionChecker, routes.shareMarkup);
+app.use('/api/markups/create', routes.createMarkup);
+app.use('/api/markups/share', routes.shareMarkup);
 app.use('/api/markups/delete', sessionChecker, routes.deleteMarkup);
 
 

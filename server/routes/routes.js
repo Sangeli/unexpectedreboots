@@ -283,24 +283,17 @@ exports.createComment = function(req, res) {
 
 
 exports.getComments = function(req, res) {
-  console.log('in get Comments', req.body);
 
   const markupid = req.body.markupid;
   const groupids = req.body.groupids;
   var flag = false;
   comments.getComments(markupid, groupids, function(err, success) {
-    console.log('callback twice??????');
     if (flag) {
       return;
     }
 
-    console.log(success, 'SUCCESS IN EXPORTS.GETCOMMENTS');
-
     if (err) {
       console.log(err, 'error in get comments');
-    }
-    if (success.length > 0) {
-      console.log('franco this is being successful', success, err, success[0]);
     }
 
     err ? res.status(404).send(err) : res.send(success);
@@ -314,7 +307,7 @@ exports.getMarkups = function(req, res) {
   const title = req.body.title;
   const groupids = req.body.groupids;
   console.log('Getting markups for url', url, 'title', title, 'groupids', groupids);
-
+  
   websites.getMarkups(url, title, groupids, function(err, markups) {
     err ? res.status(404).send(err) : res.send(markups);
   });

@@ -44,7 +44,7 @@ var getComments = function (markupid) {
 
 var showComments = function (markupid) {
   console.log('markupid on top', markupid);
-  if (markupid && commentsObj[markupid])  {
+  if (markupid && commentsObj[markupid]) {
     vex.dialog.alert('Comments: ' + commentsObj[markupid]);
   } else {
     vex.dialog.alert('No Comments To Show');
@@ -60,16 +60,18 @@ var showComments = function (markupid) {
 chrome.runtime.sendMessage({
   text: 'getUsername'
 }, function(response) {
-  console.log('Got response:', response.username, response.groups, response.shareGroups, response.destUrl);
+  console.log('Got response:', response.username, response.groups, response.destUrl);
   username = response.username;
   serverUrl = response.destUrl;
-
+  if(response.groups === null) groupsObj = {};
   groupsObj = JSON.parse(response.groups);
 
   for (var key in groupsObj) {
-    groupsSelected.push(key);
+    if(groupsObj[key] === true) groupsSelected.push(key);
   }
 
+  //globalGroups = groupsSelected;
+  /*
   $.ajax({
     type: 'GET',
     url: serverUrl + '/test/users/groups',
@@ -82,7 +84,8 @@ chrome.runtime.sendMessage({
       }
       markupIds.forEach((id) => getComments(id));
     },
-  })
+  });
+  */
 });
 
 
@@ -150,6 +153,7 @@ var elements = document.querySelectorAll("p, li, em, span, h1, h2, h3, h4, h5, t
 
 var postSelection = function(targetText, groups, comment) {
   var testExport = editor.exportSelection();
+  console.log('Posting selection');
   // console.log(groups, comment);
   chrome.runtime.sendMessage({
     action: 'add',
@@ -211,8 +215,19 @@ var numbers = [0,1,2,3,4]
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   // Note: the selection property comes from the background script
+  console.log('!!');
   var allSelections = request.selection;
+  allSelections.sort(function(b,a) {
+    if(JSON.parse(a.anchor).editableElementIndex === JSON.parse(b.anchor).editableElementIndex) {
+      //flip = !flip;
+      return JSON.parse(a.anchor).start - JSON.parse(b.anchor).start;
+    } else {
+      //flip = !flip;
+      return JSON.parse(a.anchor).editableElementIndex - JSON.parse(b.anchor).editableElementIndex;
+    }
+  });
   console.log('allSelections', allSelections);
+  var username = request.username;
   for (var i = 0; i < allSelections.length; i++) {
     if (!userSet[allSelections[i].author]) {
       userSet[allSelections[i].author] = numbers.splice(0,1);
@@ -221,26 +236,31 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     var importedSelection = JSON.parse(allSelections[i].anchor);
     var markupId;
     var author = allSelections[i].author;
-    console.log(author === username);
+    username = allSelections[i].username;
 
-    if (allSelections[i].markupid) {
-      markupId = JSON.parse(allSelections[i].markupid);
-      markupIds.push(markupId);
+
+    if (allSelections[i].id) {
+      markupId = JSON.parse(allSelections[i].id);
+      if (!markupIds.includes(markupId)) {
+        markupIds.push(markupId);
+      }
     } else {
-      console.error('markupID undefined');
+      console.error('markupId undefined');
     }
 
     editor.importSelection(importedSelection);
+    console.log('importedSelection', importedSelection);
 
     // <a href="#" class="markable-tooltip" style="background-color: yellow;">' + getCurrentSelection() + '<span> Testing a long tooltip </a>';
     var content = getCurrentSelection();
+    console.log('Author', author, 'Username', username);
     var removeHighlight = author === username ? '<button> Remove highlighting </button>' : '';
     var html = '<span class="markable-tooltip"' + 'id="markupid_' + markupId + '"' +
       'style="background-color:' + colors[userSet[allSelections[i].author]] + ';">' +
           content +
           '<span class="markable-tooltip-popup">' +
               allSelections[i].author + '<br>' + moment(allSelections[i].createdat).twitterShort() + ' ago' +
-              removeHighlight + 
+              removeHighlight +
           '</span>' +
       '</span>';
     var sel = window.getSelection();
@@ -266,8 +286,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       }
       var firstInsertedNode = fragment.firstChild;
       var lastInsertedNode = fragment.lastChild;
-      var showFlag = false;
-      var postFlag = false;
 
       range.insertNode(fragment);
       if (firstInsertedNode) {
@@ -282,54 +300,56 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     // It removes the highlighting and sends back to the database
     // to delete the markup.
     if (author === username) {
-      $('#markupid_' + markupId + ' button').click(function() {
-        console.log('Removed!');
-        var parent = $('#markupid_' + markupId).parent();
-        $('#markupid_' + markupId).remove();
-        parent.html(content);
-        removeMarkup(markupId);
-      });
+      var wrapper = function(markup, con) {
+
+        $('body').delegate('#markupid_' + markup + ' button', 'click', function(event) {
+          $('#markupid_' + markup).css('background-color', 'inherit');
+          $('#markupid_' + markup).replaceWith(con);
+          removeMarkup(markup, con);
+        });
+
+
+      }(markupId, content);
     }
 
-    $('#markupid_' + markupId).click(function () {
+    var wrapper = function(markupId) {
 
-      if (markupId) {
+      $('body').delegate('#buttonid_' + markupId, 'click', function (event) {
+        showComments(markupId);
+      });
 
-        vex.dialog.open({
-            message: 'Comments',
-            input: [
-                '<button class="showComments">',
-                'Show Comments',
-                '</button>',
-                '<button class="postComment">',
-                'Post Comment',
-                '</button>',
-            ].join(''),
-            callback: function (data) {
-              console.log('Data', data)
-            }
-        });
+      $('body').delegate('.postComment', 'click', function () {
+        addComment(markupId);
+      });
 
-        $('body').delegate('.showComments', 'click', function () {
-            if (!showFlag) {
-              var temp = $('.markable-tooltip').attr('id');
-              var index = temp.indexOf('_') + 1;
-              temp = temp.slice(index);
-              showComments(temp);
-              showFlag = true;
-            }
-        });
+      $('#markupid_' + markupId).click(function (event) {
+        var $button = $(event.target);
+        var currentId = $button[0].id;
+        var index = currentId.indexOf('_') + 1;
+        currentId = currentId.slice(index);
 
-        $('body').delegate('.postComment', 'click', function () {
-            if (!postFlag) {
-              addComment(markupId);
-              postFlag = true;
-            }
-        });
-      }
-    });
+        if (markupId) {
+
+          vex.dialog.open({
+              message: 'Comments',
+              input: [
+                  '<button class="showComments" id="buttonid_' + currentId +'">',
+                  'Show Comments',
+                  '</button>',
+                  '<button class="postComment">',
+                  'Post Comment',
+                  '</button>',
+              ].join(''),
+              callback: function (data) {
+                console.log('Data', data)
+              }
+          });
+        }
+      });
+    }(markupId);
   }
 });
+
 
 var getCurrentSelection = function() {
   var html = '';

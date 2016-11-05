@@ -51,7 +51,8 @@ exports.create = function(url, title, username, anchor, text, comment, callback)
               pool.query({
                 // insert into markups
                 text: 'INSERT INTO markups(siteid, authorid, anchor, text, comment) \
-                  VALUES($1, $2, $3, $4, $5)', 
+                  VALUES($1, $2, $3, $4, $5) \
+                  RETURNING *',
                 values: [siteID, authorID, anchor, text, comment]
               },
 
@@ -59,7 +60,8 @@ exports.create = function(url, title, username, anchor, text, comment, callback)
                 if (err3) {
                   callback(err3, null);
                 } else {
-                  callback(null, true);
+                  console.log('ROWS 3', rows3);
+                  callback(null, rows3.rows[0]);
                 }
               });
 
@@ -84,7 +86,7 @@ exports.create = function(url, title, username, anchor, text, comment, callback)
                     // insert into markups
                     text: 'INSERT INTO markups(siteid, authorid, anchor, text, comment) \
                       VALUES($1, $2, $3, $4, $5) \
-                      RETURNING *', 
+                      RETURNING *',
                     values: [siteID, authorID, anchor, text, comment]
                   },
 
@@ -120,16 +122,14 @@ exports.lookupMarkupById = function(markupid, callback) {
 
 
 var creatMarkupGroup = function(markupid, groupid, callback) {
-  console.log('/** CREATING MARKUPGROUP markupid', markupid, ' groupid', groupid, ' **/');
   pool.query({
     // insert shared markup into markupsgroups
     text: 'INSERT INTO markupsgroups(markupid, groupid) \
-      VALUES($1, $2)',
+      VALUES($1, $2) \
+      RETURNING *',
       values: [markupid, groupid]
   },
   function(err, rows) {
-    console.log('ERR', err);
-    console.log('ROWS', rows);
     err ? callback(err, null) : callback(null, rows.rows[0]);
   });
 };
@@ -143,7 +143,13 @@ exports.share = function(markupid, groupid, callback) {
         if(err) {
           callback(err, null);
         } else {
-          creatMarkupGroup(markupid, groupid, callback);
+          creatMarkupGroup(markupid, groupid, function (err, markupgroup) {
+            if (err) {
+              callback(err, null);
+            } else {
+              callback(null, markup);
+            }
+          });
         }
       });
     }

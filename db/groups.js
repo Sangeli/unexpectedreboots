@@ -66,9 +66,10 @@ exports.create = function(groupName, owner, callback) {
 
                 pool.query({
                   text: 'INSERT INTO usersgroups(userid, groupid) \
-                    VALUES ($1, $2)',
+                    VALUES ($1, $2) \
+                    RETURNING *',
                   values: [ownerID, groupID]
-                }, 
+                },
 
                 function(err4, rows4) {
                   err4 ? callback(false, null) : callback(null, true);
@@ -88,7 +89,7 @@ exports.join = function(groupID, newMember, callback) {
   pool.query({
     text: 'SELECT u.id AS userid FROM users u \
       WHERE u.username = \'' + newMember + '\';'
-  }, 
+  },
   function(err, rows) {
     if(rows.count === 0) {
       callback('new user ' + newMember + ' does not exist', null);
@@ -100,7 +101,7 @@ exports.join = function(groupID, newMember, callback) {
                   SELECT ug.userid FROM usersgroups ug \
                   WHERE ug.groupid = \'' + groupID + '\' \
                 )'
-      }, 
+      },
       function(err2, rows2) {
         if(rows2.length > 0) {
           callback('cannot add a user that is already a member of the group', null);
@@ -115,7 +116,7 @@ exports.join = function(groupID, newMember, callback) {
                 ),' +
                 groupID +
               ');'
-          }, 
+          },
 
           function(err3, rows3) {
             err3 ? callback(err3, null) : callback(null, true);
@@ -134,7 +135,7 @@ exports.add = function(groupID, username, newMember, callback) {
     // check if new user exists
     text: 'SELECT u.id AS userid FROM users u \
       WHERE u.username = \'' + newMember + '\';'
-  }, 
+  },
 
   function(err, rows) {
     if (err) {
@@ -153,7 +154,7 @@ exports.add = function(groupID, username, newMember, callback) {
             on g.id = ug.groupid \
             WHERE u.username = \'' + username + '\' \
             AND g.id = \'' + groupID + '\''
-        }, 
+        },
 
         function(err2, rows2) {
           if (err2) {
@@ -163,7 +164,7 @@ exports.add = function(groupID, username, newMember, callback) {
               callback('current user is not the owner of specified group', null);
             } else {
               var ownerID = rows2.rows[0].userid;
-              
+
               pool.query({
                 // check if new member already has membership to specified group
                 text: 'SELECT u.id AS userid FROM users u \
@@ -192,7 +193,7 @@ exports.add = function(groupID, username, newMember, callback) {
                       if (err4) {
                         callback(err4, null);
                       } else {
-                       
+
                         pool.query({
                           // select newmemberID and insert it into the relevant group
                           text: 'INSERT INTO usersgroups \
@@ -203,12 +204,12 @@ exports.add = function(groupID, username, newMember, callback) {
                               ),' +
                               groupID +
                             ');'
-                        }, 
+                        },
 
                         function(err5, rows5) {
                           err5 ? callback(err5, null) : callback(null, true);
                         });
-                      
+
                       }
                     });
                   }
@@ -229,7 +230,7 @@ exports.remove = function(owner, groupID, username, callback) {
     text: 'DELETE FROM usersgroups \
            WHERE usersgroups.groupid = \'' + groupID + '\' \
            AND usersgroups.userid \
-           IN (SELECT id FROM users WHERE username = \'' + username + '\')' 
+           IN (SELECT id FROM users WHERE username = \'' + username + '\')'
   },
 
   function(err, rows) {
@@ -293,7 +294,7 @@ exports.getMembers = function(groupID, callback) {
         callback('group has no members', null);
       } else {
         err ? callback(err, null) : callback(null, rows.rows);
-      } 
+      }
     }
   });
 };
@@ -301,7 +302,7 @@ exports.getMembers = function(groupID, callback) {
 exports.getMarkups = function(groupID, callback) {
 
   pool.query({
-    text: 
+    text:
       'SELECT u2.username AS author, \
         s2.title AS title, \
         s2.url AS url, \
@@ -332,7 +333,7 @@ exports.getMarkups = function(groupID, callback) {
 exports.getSites = function(groupID, callback) {
 
   pool.query({
-    text: 
+    text:
       'SELECT u2.username AS author, \
         s2.title AS title, \
         s2.url AS url, \
