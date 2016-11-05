@@ -307,3 +307,15 @@ exports.getComments = function(req, res) {
     flag = true;
   });
 };
+
+
+exports.getMarkups = function(req, res) {
+  const url = req.body.url;
+  const title = req.body.title;
+  const groupids = req.body.groupids;
+  console.log('Getting markups for url', url, 'title', title, 'groupids', groupids);
+
+  websites.getMarkups(url, title, groupids, function(err, markups) {
+    err ? res.status(404).send(err) : res.send(markups);
+  });
+}
