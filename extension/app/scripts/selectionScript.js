@@ -60,7 +60,7 @@ var showComments = function (markupid) {
 chrome.runtime.sendMessage({
   text: 'getUsername'
 }, function(response) {
-
+  console.log('Got response:', response.username, response.groups, response.shareGroups, response.destUrl);
   username = response.username;
   serverUrl = response.destUrl;
 
@@ -110,7 +110,7 @@ var addComment = function (markupid) {
               console.log('Comment', data.comment);
           }
       }
-  })
+  });
 }
 
 /***************************************************
@@ -160,7 +160,18 @@ var postSelection = function(targetText, groups, comment) {
   }, function(response) {
 
   });
-}
+};
+
+var removeMarkup = function(markupId) {
+  console.log('Stubbed functionality: implement removeMarkup');
+  // chrome.runtime.sendMessage({
+  //   action: 'remove',
+  //   markupId: markupId
+  // }, function(response) {
+
+  // });
+};
+
 
 /***************************************************
               MARKUP TOOLBAR
@@ -199,10 +210,9 @@ var numbers = [0,1,2,3,4]
 
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-
-
+  // Note: the selection property comes from the background script
   var allSelections = request.selection;
-
+  console.log('allSelections', allSelections);
   for (var i = 0; i < allSelections.length; i++) {
     if (!userSet[allSelections[i].author]) {
       userSet[allSelections[i].author] = numbers.splice(0,1);
@@ -210,6 +220,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
     var importedSelection = JSON.parse(allSelections[i].anchor);
     var markupId;
+    var author = allSelections[i].author;
+    console.log(author === username);
 
     if (allSelections[i].markupid) {
       markupId = JSON.parse(allSelections[i].markupid);
@@ -221,12 +233,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     editor.importSelection(importedSelection);
 
     // <a href="#" class="markable-tooltip" style="background-color: yellow;">' + getCurrentSelection() + '<span> Testing a long tooltip </a>';
-
-   var html = '<span class="lali markable-tooltip"' + 'id="markupid_' + markupId + '"' +
-      'style="background-color:' + colors[userSet[allSelections[i].author]] +
-      ';">' + getCurrentSelection() + '<span class="markable-tooltip-popup">' + allSelections[i].author
-      + '<br>' + moment(allSelections[i].createdat).twitterShort() + ' ago </span></span>';
-
+    var content = getCurrentSelection();
+    var removeHighlight = author === username ? '<button> Remove highlighting </button>' : '';
+    var html = '<span class="markable-tooltip"' + 'id="markupid_' + markupId + '"' +
+      'style="background-color:' + colors[userSet[allSelections[i].author]] + ';">' +
+          content +
+          '<span class="markable-tooltip-popup">' +
+              allSelections[i].author + '<br>' + moment(allSelections[i].createdat).twitterShort() + ' ago' +
+              removeHighlight + 
+          '</span>' +
+      '</span>';
     var sel = window.getSelection();
     var range;
 
@@ -247,7 +263,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         while ((child = div.firstChild)) {
           fragment.appendChild(child);
         }
-
       }
       var firstInsertedNode = fragment.firstChild;
       var lastInsertedNode = fragment.lastChild;
@@ -263,6 +278,18 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       sel.addRange(range);
     }
 
+    // This one places a listener on the button on the tool tip
+    // It removes the highlighting and sends back to the database
+    // to delete the markup.
+    if (author === username) {
+      $('#markupid_' + markupId + ' button').click(function() {
+        console.log('Removed!');
+        var parent = $('#markupid_' + markupId).parent();
+        $('#markupid_' + markupId).remove();
+        parent.html(content);
+        removeMarkup(markupId);
+      });
+    }
 
     $('#markupid_' + markupId).click(function () {
 

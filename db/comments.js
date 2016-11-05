@@ -155,23 +155,25 @@ exports.getComments = function(markupid, groupids, callback) {
     } else {
       var foundAny = false;
       var counter = 0;
-      groupids.forEach((groupid) => {
-        console.log(comments, 'comments', groupid, 'GROUPID----- RIGHT HERE FRANK');
+      if (groupids) {
+        groupids.forEach((groupid) => {
+          console.log(comments, 'comments', groupid, 'GROUPID----- RIGHT HERE FRANK');
 
-        //now check if the markup is part of any of the groups we are using
-        checkGroupMarkupExists(markupid, parseInt(groupid), (err, exists) => {
-          //no error callback because we can check other groups
-          if (!err && exists && !foundAny) {
-            console.log('anything!!!!!!!!!!@#$%^&*', comments[0]);
-            callback(null, comments);
-            foundAny = true;
-          }
-          counter ++;
-          if(counter === groupids.length && !foundAny) {
-            callback(null, []);
-          }
+          //now check if the markup is part of any of the groups we are using
+          checkGroupMarkupExists(markupid, parseInt(groupid), (err, exists) => {
+            //no error callback because we can check other groups
+            if (!err && exists && !foundAny) {
+              console.log('anything!!!!!!!!!!@#$%^&*', comments[0]);
+              callback(null, comments);
+              foundAny = true;
+            }
+            counter ++;
+            if(counter === groupids.length && !foundAny) {
+              callback(null, []);
+            }
+          });
         });
-      });
+      }
     }
   });
 };
